@@ -7,8 +7,8 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="mpi" level="project" />
     <orderEntry type="library" name="mpj" level="project" />
     <orderEntry type="library" name="starter" level="project" />
+    <orderEntry type="library" name="mpi" level="project" />
   </component>
 </module>

@@ -1,59 +1,88 @@
-import mpi.MPI;
-import mpi.MPIException;
-import mpi.Request;
+import mpi.*;
 
+import java.util.Arrays;
+import java.util.Random;
 
-public class Main {
+class Main {
     public static void main(String[] args) throws MPIException {
         MPI.Init(args);
         int rank = MPI.COMM_WORLD.Rank();
         int size = MPI.COMM_WORLD.Size();
-        int TAG = 0;
 
-        int[] data = new int[size];
-        int[] filteredData = new int[size];
+        Random rand = new Random();
+        int[] randNums = new int[size - 3];
 
-        // Инициализация массива данных
-        for (int i = 0; i < size; i++) {
-            data[i] = i * 2; // Здесь вы можете установить свое условие фильтрации
+        if (rank >= 3) {
+            randNums[rank - 3] = rand.nextInt(100);
+            // отправляем рандомно сгенерированные числа в 1 и 2 ранги
+            MPI.COMM_WORLD.Isend(randNums, rank - 3, 1, MPI.INT, 1, 0);
+            MPI.COMM_WORLD.Isend(randNums, rank - 3, 1, MPI.INT, 2, 0);
         }
 
-        // Рассчитываем, сколько элементов будет удовлетворять условию фильтрации
-        int filteredCount = 0;
-        for (int i = 0; i < size; i++) {
-            if (data[i] % 4 == 0) { // Пример условия: оставляем только четные элементы
-                filteredData[filteredCount] = data[i];
-                filteredCount++;
+        if (rank == 1 || rank == 2)
+        {
+            Request[] requests = new Request[size - 3];
+            int[] numbers = new int[size - 3];
+            for (int i = 3; i < size; i++) {
+                requests[i - 3] = MPI.COMM_WORLD.Irecv(numbers, i - 3, 1, MPI.INT, i, 0);
+            }
+            Request.Waitall(requests);
+
+            Arrays.sort(numbers);
+            if (rank == 1) {
+                randNums = Arrays.copyOfRange(numbers, 0, numbers.length / 2);
+            } else {
+                randNums = Arrays.copyOfRange(numbers, numbers.length / 2, numbers.length);
+            }
+            MPI.COMM_WORLD.Isend(randNums, 0, randNums.length, MPI.INT, 0, 0);
+        }
+
+        if (rank == 0)
+        {
+            int[] list1 = null, list2 = null;
+            Status status;
+            while (true) {
+                status = MPI.COMM_WORLD.Iprobe(1, 0);
+                if (status != null) {
+                    list1 = new int[status.Get_count(MPI.INT)];
+                    MPI.COMM_WORLD.Recv(list1,0, list1.length ,MPI.INT, 1, 0);
+                    break;
+                }
+            }
+            while (true) {
+                status = MPI.COMM_WORLD.Iprobe(2, 0);
+                if (status != null) {
+                    list2 = new int[status.Get_count(MPI.INT)];
+                    MPI.COMM_WORLD.Recv(list2,0, list2.length, MPI.INT, 2, 0);
+                    break;
+                }
+            }
+
+            int[] fullList = new int[list1.length + list2.length];
+            int i = 0, j = 0, k = 0;
+
+            while (i < list1.length && j < list2.length) {
+                if (list1[i] <= list2[j]) {
+                    fullList[k++] = list1[i++];
+                } else {
+                    fullList[k++] = list2[j++];
+                }
+            }
+
+            while (i < list1.length) {
+                fullList[k++] = list1[i++];
+            }
+
+            while (j < list2.length) {
+                fullList[k++] = list2[j++];
+            }
+
+            Arrays.sort(fullList);
+            
+            for (int num : fullList) {
+                System.out.println(num);
             }
         }
-
-        // Создаем массив для принимаемых данных
-        int[] receivedData = new int[filteredCount];
-
-        // Создаем массивы запросов для неблокирующих операций
-        Request[] sendRequests = new Request[size];
-        Request[] recvRequests = new Request[size];
-
-        // Неблокирующая отправка данных от каждого процесса
-        for (int i = 0; i < size; i++) {
-            sendRequests[i] = MPI.COMM_WORLD.Isend(new int[]{filteredData[i]}, 0, 1, MPI.INT, i, TAG);
-        }
-
-        // Неблокирующий прием данных
-        for (int i = 0; i < size; i++) {
-            recvRequests[i] = MPI.COMM_WORLD.Irecv(new int[]{receivedData[i]}, 0, 1, MPI.INT, i, TAG);
-        }
-
-        // Ждем завершения всех неблокирующих операций
-        Request.Waitall(sendRequests);
-        Request.Waitall(recvRequests);
-
-        // Выводим отфильтрованные данные на каждом процессе
-        System.out.println("Process " + rank + " received filtered data: ");
-        for (int i = 0; i < filteredCount; i++) {
-            System.out.print(receivedData[i] + " ");
-        }
-        System.out.println();
 
         MPI.Finalize();
     }
