@@ -8,23 +8,22 @@ class Main {
         MPI.Init(args);
         int rank = MPI.COMM_WORLD.Rank();
         int size = MPI.COMM_WORLD.Size();
-
         Random rand = new Random();
-        int[] randNums = new int[size - 3];
+        int[] randNums = new int[size - 1];
 
-        if (rank >= 3) {
-            randNums[rank - 3] = rand.nextInt(100);
-            // отправляем рандомно сгенерированные числа в 1 и 2 ранги
-            MPI.COMM_WORLD.Isend(randNums, rank - 3, 1, MPI.INT, 1, 0);
-            MPI.COMM_WORLD.Isend(randNums, rank - 3, 1, MPI.INT, 2, 0);
+        if (rank >= 1) {
+            randNums[rank - 1] = rand.nextInt(10);
+
+            MPI.COMM_WORLD.Isend(randNums, rank - 1, 1, MPI.INT, 1, 0);
+            MPI.COMM_WORLD.Isend(randNums, rank - 1, 1, MPI.INT, 2, 0);
         }
 
         if (rank == 1 || rank == 2)
         {
-            Request[] requests = new Request[size - 3];
-            int[] numbers = new int[size - 3];
-            for (int i = 3; i < size; i++) {
-                requests[i - 3] = MPI.COMM_WORLD.Irecv(numbers, i - 3, 1, MPI.INT, i, 0);
+            Request[] requests = new Request[size - 1];
+            int[] numbers = new int[size - 1];
+            for (int i = 1; i < size; i++) {
+                requests[i - 1] = MPI.COMM_WORLD.Irecv(numbers, i - 1, 1, MPI.INT, i, 0);
             }
             Request.Waitall(requests);
 
@@ -46,7 +45,9 @@ class Main {
                 if (status != null) {
                     list1 = new int[status.Get_count(MPI.INT)];
                     MPI.COMM_WORLD.Recv(list1,0, list1.length ,MPI.INT, 1, 0);
+
                     break;
+
                 }
             }
             while (true) {
@@ -57,6 +58,11 @@ class Main {
                     break;
                 }
             }
+
+            for (int i:list1)
+                System.out.print(i);
+            for (int i:list2)
+                System.out.println(i);
 
             int[] fullList = new int[list1.length + list2.length];
             int i = 0, j = 0, k = 0;
@@ -78,9 +84,9 @@ class Main {
             }
 
             Arrays.sort(fullList);
-            
+
             for (int num : fullList) {
-                System.out.println(num);
+                System.out.print(num + " ");
             }
         }
 
