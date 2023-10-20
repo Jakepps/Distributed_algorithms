@@ -1,5 +1,4 @@
-import mpi.MPI;
-import mpi.Status;
+import mpi.*;
 
 public class Main {
     public static void main(String[] args) {
@@ -7,43 +6,58 @@ public class Main {
         int rank = MPI.COMM_WORLD.Rank();
         int size = MPI.COMM_WORLD.Size();
 
-        // Размерность векторов
-        int N = 1000; // Здесь можно указать нужное значение
+        int N = 10;
 
-        int[] a = new int[N];
-        int[] b = new int[N];
+        int[] A = new int[N];
+        int[] B = new int[N];
 
         if (rank == 0) {
-            // Инициализация векторов a и b (можно изменить на свой способ)
-            for (int i = 0; i < N; i++) {
-                a[i] = i + 1;
-                b[i] = i + 2;
-            }
+            initializeVectors(A, B, N);
+//            for (int i=0; i < N; i++)
+//                System.out.println(A[i]);
+//            for (int i=0; i < N; i++)
+//                System.out.println(B[i]);
         }
+
+        // Рассылка векторов A и B на все процессы
+        MPI.COMM_WORLD.Bcast(A, 0, N, MPI.INT, 0);
+        MPI.COMM_WORLD.Bcast(B, 0, N, MPI.INT, 0);
 
         int localN = N / size;
         int[] localA = new int[localN];
         int[] localB = new int[localN];
 
-        // Рассылка частей векторов a и b
-        MPI.COMM_WORLD.Scatter(a, 0, localN, MPI.INT, localA, 0, localN, MPI.INT, 0);
-        MPI.COMM_WORLD.Scatter(b, 0, localN, MPI.INT, localB, 0, localN, MPI.INT, 0);
+        //распределения данных из корневого процесса на все процессы в коммуникаторе
+        MPI.COMM_WORLD.Scatter(A, 0, localN, MPI.INT, localA, 0, localN, MPI.INT, 0);
+        MPI.COMM_WORLD.Scatter(B, 0, localN, MPI.INT, localB, 0, localN, MPI.INT, 0);
 
-        // Локальное вычисление частичных скалярных произведений
-        int localResult = 0;
-        for (int i = 0; i < localN; i++) {
-            localResult += localA[i] * localB[i];
-        }
+        int[] localResult = new int[1];
+        for (int i = 0; i < 1; i++)
+            localResult[0] = calcLocalScalar(localA, localB, localN);
 
         int[] globalResult = new int[1];
 
-        // Сбор частичных результатов
-        MPI.COMM_WORLD.Reduce(localResult,0, globalResult, 0, 1, MPI.INT, MPI.SUM, 0);
+        MPI.COMM_WORLD.Reduce(localResult, 0, globalResult, 0, 1, MPI.INT, MPI.SUM, 0);
 
         if (rank == 0) {
-            System.out.println("Скалярное произведение: " + globalResult[0]);
+            System.out.println("Итог: " + globalResult[0]);
         }
 
         MPI.Finalize();
+    }
+
+    private static void initializeVectors(int[] A, int[] B, int N) {
+        for (int i = 0; i < N; i++) {
+            A[i] = (int) (Math.random() * 100);
+            B[i] = (int) (Math.random() * 100);
+        }
+    }
+
+    private static int calcLocalScalar(int[] A, int[] B, int N) {
+        int result = 0;
+        for (int i = 0; i < N; i++) {
+            result += A[i] * B[i];
+        }
+        return result;
     }
 }
