@@ -6,17 +6,16 @@ public class Main {
         int rank = MPI.COMM_WORLD.Rank();
         int size = MPI.COMM_WORLD.Size();
 
-        int N = 10;
+        long starTime, endTime;
+        starTime = System.currentTimeMillis();
+
+        int N = 100000;
 
         int[] A = new int[N];
         int[] B = new int[N];
 
         if (rank == 0) {
             initializeVectors(A, B, N);
-//            for (int i=0; i < N; i++)
-//                System.out.println(A[i]);
-//            for (int i=0; i < N; i++)
-//                System.out.println(B[i]);
         }
 
         // Рассылка векторов A и B на все процессы
@@ -39,8 +38,11 @@ public class Main {
 
         MPI.COMM_WORLD.Reduce(localResult, 0, globalResult, 0, 1, MPI.INT, MPI.SUM, 0);
 
+        endTime = System.currentTimeMillis();
+
         if (rank == 0) {
             System.out.println("Итог: " + globalResult[0]);
+            System.out.println("Программа закончила свою работу за " + (endTime - starTime) + " мс. и кол. процессов " + size);
         }
 
         MPI.Finalize();
