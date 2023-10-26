@@ -6,10 +6,10 @@ public class Main {
         int rank = MPI.COMM_WORLD.Rank();
         int size = MPI.COMM_WORLD.Size();
 
-        long starTime, endTime;
-        starTime = System.currentTimeMillis();
+        long startTime, endTime;
+        startTime = System.currentTimeMillis();
 
-        int N = 100000;
+        int N = 1000000;
 
         int[] A = new int[N];
         int[] B = new int[N];
@@ -41,8 +41,8 @@ public class Main {
         endTime = System.currentTimeMillis();
 
         if (rank == 0) {
-            System.out.println("Итог: " + globalResult[0]);
-            System.out.println("Программа закончила свою работу за " + (endTime - starTime) + " мс. и кол. процессов " + size);
+            System.out.println("Result: " + globalResult[0]);
+            System.out.println("The program finished its work in " + (endTime - startTime) + " ms. and the number of processes " + size);
         }
 
         MPI.Finalize();
