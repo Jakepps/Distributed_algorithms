@@ -24,8 +24,9 @@ public class Main {
             Request[] sendRequests = new Request[size - 1];
 
             // Отправляем данные всем процессам неблокирующим способом.
+            GraphData[] dataToSend = new GraphData[]{graphData};
             for (int i = 1; i < size; i++) {
-                sendRequests[i - 1] = MPI.COMM_WORLD.Isend(graphData, 0, 1, MPI.INT, i, 0);
+                sendRequests[i - 1] = MPI.COMM_WORLD.Isend(dataToSend, 0, 1, MPI.OBJECT, i, 0);
             }
 
             for (int i = 0; i < size - 1; i++) {
@@ -33,28 +34,33 @@ public class Main {
             }
         } else {
             // Процессы с рангами 1 и выше принимают данные.
-            GraphData graphDataRecv = new GraphData();
+            //GraphData graphDataRecv = new GraphData();
+            GraphData[] dataReceived = new GraphData[1];
+            MPI.COMM_WORLD.Irecv(dataReceived, 0, 1, MPI.OBJECT, 0, 0).Wait();
+            GraphData graphDataRecv = dataReceived[0];
 
             // Создаем массив для хранения статусов приема.
-
-            MPI.COMM_WORLD.Irecv(graphDataRecv, 0, 1, MPI.OBJECT, 0, 0).Wait();
+            //MPI.COMM_WORLD.Irecv(graphDataRecv, 0, 1, MPI.OBJECT, 0, 0).Wait();
 
             boolean isHypercube = checkIsomorphism(graphDataRecv);
 
             // Отправляем результат на процесс с рангом 0.
-            MPI.COMM_WORLD.Isend(isHypercube, 0, 1, MPI.BOOLEAN, 0, 0);
+            byte[] sendBuffer = new byte[]{(byte) (isHypercube ? 1 : 0)};
+            MPI.COMM_WORLD.Isend(sendBuffer, 0, 1, MPI.BYTE, 0, 0);
+
+            //MPI.COMM_WORLD.Isend(new boolean[] {isHypercube}, 0, 1, MPI.BOOLEAN, 0, 0);
         }
 
         if (rank == 0) {
             // Процесс с рангом 0 собирает результаты.
-            boolean[] results = new boolean[size - 1];
 
             // Создаем массив для хранения статусов приема результатов.
+            byte[] recvResults = new byte[size - 1];
             Status[] recvStatus = new Status[size - 1];
             Request[] recvRequests = new Request[size - 1];
 
             for (int i = 1; i < size; i++) {
-                recvRequests[i - 1] = MPI.COMM_WORLD.Irecv(results, i - 1, 1, MPI.BOOLEAN, i, 0);
+                recvRequests[i - 1] = MPI.COMM_WORLD.Irecv(recvResults, i - 1, 1, MPI.BYTE, i, 0);
             }
 
             // Ждем завершения всех операций приема результатов.
@@ -63,9 +69,10 @@ public class Main {
             }
 
             boolean isHypercubeOverall = true;
-            for (boolean result : results) {
-                isHypercubeOverall &= result;
+            for (byte result : recvResults) {
+                isHypercubeOverall &= (result != 0);
             }
+
 
             if (isHypercubeOverall) {
                 System.out.println("Граф является гиперкубом.");
@@ -87,10 +94,8 @@ public class Main {
         edges.add(new Edge(3, 5));
         edges.add(new Edge(4, 5));
 
-        GraphData gr1 = generateHypercube(numVertices);
-
-        return new GraphData(numVertices, edges);
-        //return gr1;
+        //return new GraphData(numVertices, edges);
+        return generateHypercube(numVertices);
     }
 
     // функция для проверки изоморфизма гиперкубов

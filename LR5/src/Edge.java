@@ -1,8 +1,8 @@
 import java.io.Serializable;
 
 public class Edge implements Serializable {
-    private int source;
-    private int destination;
+    private final int source;
+    private final int destination;
 
     public Edge(int source, int destination) {
         this.source = source;
