@@ -15,6 +15,9 @@ public class Main {
             return;
         }
 
+        long startTime, endTime;
+        startTime = System.currentTimeMillis();
+
         if (rank == 0) {
             // Генерируем исходные данные (граф) на процессе с рангом 0.
             GraphData graphData = generateGraphData();
@@ -73,19 +76,22 @@ public class Main {
                 isHypercubeOverall &= (result != 0);
             }
 
+            endTime = System.currentTimeMillis();
 
             if (isHypercubeOverall) {
                 System.out.println("Граф является гиперкубом.");
             } else {
                 System.out.println("Граф не является гиперкубом.");
             }
+
+            System.out.println("Программа завершила работу за " + (endTime - startTime) + " мс. и количество процессов равно " + size);
         }
 
         MPI.Finalize();
     }
 
     private static GraphData generateGraphData() {
-        int numVertices = 6;
+        int numVertices = 10;
         List<Edge> edges = new ArrayList<>();
         edges.add(new Edge(0, 1));
         edges.add(new Edge(0, 2));
