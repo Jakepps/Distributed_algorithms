@@ -1,7 +1,7 @@
 import mpi.*;
 import java.util.ArrayList;
 import java.util.List;
-public class Nonblocked {
+public class Nonblocking {
     public static void main(String[] args) {
         MPI.Init(args);
 
